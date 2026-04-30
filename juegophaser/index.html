@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hábitos Saludables</title>
+
+  <!--
+    NOTA PARA MICROSOFT EDGE:
+    Si ves advertencias de "Tracking Prevention blocked access to storage",
+    desactiva la prevención de rastreo para localhost:
+    1. Haz clic en el candado (🔒) en la barra de direcciones
+    2. Elige "Permisos para este sitio"  →  "Tracking prevention: OFF"
+    O bien: Configuración → Privacidad → Prevención de rastreo → Excepciones → Agregar localhost
+    
+    El juego funciona igual gracias al almacenamiento en memoria como respaldo.
+  -->
+
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: linear-gradient(135deg, #f0e6ff 0%, #ffe6f5 50%, #e6f0ff 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    #game-container {
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(100, 0, 200, 0.15);
+    }
+
+    /* Pantalla de carga mientras Phaser inicia */
+    #loading-screen {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #f0e6ff 0%, #ffe6f5 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      z-index: 9999;
+      transition: opacity 0.5s ease;
+    }
+    #loading-screen.hidden { opacity: 0; pointer-events: none; }
+
+    .spinner {
+      width: 56px; height: 56px;
+      border: 5px solid #ede9fe;
+      border-top-color: #7c3aed;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-title {
+      font-size: 26px; font-weight: 700; color: #7c3aed;
+    }
+    .loading-sub {
+      font-size: 14px; color: #a78bda;
+    }
+
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- Pantalla de carga -->
+  <div id="loading-screen">
+    <div style="font-size:56px;">⭐</div>
+    <div class="loading-title">Hábitos Saludables</div>
+    <div class="spinner"></div>
+    <div class="loading-sub">Cargando el juego...</div>
+  </div>
+
+  <div id="game-container"></div>
+
+  <script>
+    // Ocultar la pantalla de carga cuando Phaser esté listo
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const ls = document.getElementById('loading-screen');
+        if (ls) ls.classList.add('hidden');
+        setTimeout(() => { if (ls) ls.remove(); }, 600);
+      }, 800);
+    });
+
+    // Capturar errores globales y mostrarlos amigablemente
+    window.addEventListener('error', (e) => {
+      console.error('Error en el juego:', e.message);
+    });
+  </script>
+
+  <script src="src/main.js" type="module"></script>
+</body>
+</html>
