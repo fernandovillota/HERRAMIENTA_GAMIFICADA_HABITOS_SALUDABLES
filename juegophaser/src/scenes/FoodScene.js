@@ -1,7 +1,7 @@
 // src/scenes/FoodScene.js — Módulo Alimentación Saludable
 import BaseScene from './BaseScene.js';
 import { FOOD_ITEMS, ACHIEVEMENTS, shuffleArray, getRandomItems } from '../utils/gameData.js';
-import { getCurrentUser, addPoints, updateModuleProgress, updateStreak, getUserData, checkAndUnlockAchievements } from '../utils/userData.js';
+import { getCurrentUser, clearCurrentUser, addPoints, updateModuleProgress, updateStreak, getUserData, checkAndUnlockAchievements } from '../utils/userData.js';
 
 const F = '"Segoe UI",Arial,sans-serif';
 
@@ -22,7 +22,7 @@ export default class FoodScene extends BaseScene {
         this.answered  = false;
 
         this.crearFondo(0xf0fdf4, 0xecfdf5);
-        this.crearTopbar(this.user, () => this.scene.start('ProfileScene'), () => { this.scene.start('LoginScene'); });
+        this.crearTopbar(this.user, () => this.scene.start('ProfileScene'), () => { clearCurrentUser(); this.scene.start('LoginScene'); });
         this._crearUI();
     }
 

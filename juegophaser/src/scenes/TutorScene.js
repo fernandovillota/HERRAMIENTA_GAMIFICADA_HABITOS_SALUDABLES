@@ -1,7 +1,7 @@
 // src/scenes/TutorScene.js — Panel del Tutor (Profesor / Padre / Madre)
 import BaseScene, { renderAvatar } from './BaseScene.js';
 import {
-    getCurrentUser, clearCurrentUser, isTutor,
+    getCurrentUser, clearCurrentUser, isTutor, isTeacher, isParent,
     getSalonesDeTutor, getSalonById, crearSalon, editarSalon, eliminarSalon,
     getEstudiantesDeSalon, agregarEstudiante, removerEstudiante,
     getEstadisticasEstudiante, getAllUsers, isStudent, saveUserData, getUserData
@@ -58,7 +58,13 @@ export default class TutorScene extends BaseScene {
     // ════════════════════════════════════════════════════════
     _fondo() {
         const g = this.add.graphics();
-        g.fillGradientStyle(0xf3e8ff, 0xf3e8ff, 0xfce7f3, 0xf0e6ff, 1);
+        const isP = this.user?.role === 'parent';
+        // parent → fondo naranja muy claro | teacher → fondo azul muy claro
+        if (isP) {
+            g.fillGradientStyle(0xfff7ed, 0xfff7ed, 0xffedd5, 0xfef3c7, 1);
+        } else {
+            g.fillGradientStyle(0xeff6ff, 0xeff6ff, 0xdbeafe, 0xede9fe, 1);
+        }
         g.fillRect(0, 0, this.W, this.H);
     }
 
@@ -68,28 +74,42 @@ export default class TutorScene extends BaseScene {
     _topbar() {
         const W = this.W, u = this.user;
 
-        // Fondo blanco con sombra suave
+        // Colores según rol
+        const isTeacherRole = u?.role === 'teacher';
+        const isParentRole  = u?.role === 'parent';
+        // teacher → azul  | parent → naranja | legacy tutor → azul
+        const C1 = isParentRole ? 0xea580c : 0x1e40af;
+        const C2 = isParentRole ? 0xf97316 : 0x2563eb;
+        const rolLabel = isParentRole ? 'Panel de Padres  ·  Gestión de grupos' :
+                                        'Panel del Docente  ·  Gestión de grupos';
+        const rolColor = isParentRole ? '#ea580c' : '#1d4ed8';
+
+        // Fondo blanco con borde de color
         const bg = this.add.graphics();
         bg.fillStyle(0xffffff, 1);
         bg.fillRoundedRect(20, 10, W - 40, 68, 16);
-        bg.lineStyle(1, 0xe9d5ff, 1);
+        bg.lineStyle(2, isParentRole ? 0xfed7aa : 0xdbeafe, 1);
         bg.strokeRoundedRect(20, 10, W - 40, 68, 16);
+
+        // Franja de color en el lado izquierdo de la tarjeta
+        const stripe = this.add.graphics();
+        stripe.fillStyle(C1, 1);
+        stripe.fillRoundedRect(20, 10, 6, 68, 3);
 
         // Avatar + info tutor
         renderAvatar(this, 60, 44, 44, u);
-        const rol = u.role === 'tutor' ? 'Panel del Tutor' : 'Panel del Tutor';
         const tNombre = this.add.text(90, 32, u.name || u.username, { fontSize: '18px', fontFamily: F, fontStyle: 'bold', fill: '#1e1b4b' });
-        const tRol    = this.add.text(90, 54, rol, { fontSize: '12px', fontFamily: F, fill: '#7c3aed' });
+        const tRol    = this.add.text(90, 54, rolLabel, { fontSize: '12px', fontFamily: F, fill: rolColor });
 
-        // Btn Configuración
+        // Btn Editar Perfil
         const cfgBg = this.add.graphics();
-        cfgBg.fillStyle(0xfafafa, 1); cfgBg.lineStyle(1.5, 0xe5e7eb, 1);
+        cfgBg.fillStyle(0xfafafa, 1); cfgBg.lineStyle(1.5, isParentRole ? 0xfed7aa : 0xbfdbfe, 1);
         cfgBg.fillRoundedRect(W - 280, 22, 148, 38, 19);
-        const cfgT = this.add.text(W - 206, 41, '⚙️  Configuración', { fontSize: '13px', fontFamily: F, fontStyle: 'bold', fill: '#374151' }).setOrigin(0.5);
+        const cfgT = this.add.text(W - 206, 41, '✏️  Editar perfil', { fontSize: '13px', fontFamily: F, fontStyle: 'bold', fill: '#374151' }).setOrigin(0.5);
         const cfgH = this.add.rectangle(W - 206, 41, 148, 38, 0, 0).setInteractive({ useHandCursor: true });
-        cfgH.on('pointerover',  () => { cfgBg.clear(); cfgBg.fillStyle(0xf5f3ff, 1); cfgBg.lineStyle(1.5, 0x7c3aed, 1); cfgBg.fillRoundedRect(W-280, 22, 148, 38, 19); this.tweens.add({targets:cfgT,scaleX:1.04,scaleY:1.04,duration:100}); });
-        cfgH.on('pointerout',   () => { cfgBg.clear(); cfgBg.fillStyle(0xfafafa, 1); cfgBg.lineStyle(1.5, 0xe5e7eb, 1); cfgBg.fillRoundedRect(W-280, 22, 148, 38, 19); this.tweens.add({targets:cfgT,scaleX:1,scaleY:1,duration:100}); });
-        cfgH.on('pointerdown',  () => this.mostrarToast('⚙️ Configuración próximamente', 0x7c3aed));
+        cfgH.on('pointerover',  () => { cfgBg.clear(); cfgBg.fillStyle(isParentRole?0xfff7ed:0xeff6ff, 1); cfgBg.lineStyle(1.5, C1, 1); cfgBg.fillRoundedRect(W-280, 22, 148, 38, 19); this.tweens.add({targets:cfgT,scaleX:1.04,scaleY:1.04,duration:100}); });
+        cfgH.on('pointerout',   () => { cfgBg.clear(); cfgBg.fillStyle(0xfafafa, 1); cfgBg.lineStyle(1.5, isParentRole?0xfed7aa:0xbfdbfe, 1); cfgBg.fillRoundedRect(W-280, 22, 148, 38, 19); this.tweens.add({targets:cfgT,scaleX:1,scaleY:1,duration:100}); });
+        cfgH.on('pointerdown',  () => { this.tweens.add({ targets: cfgT, scaleX: 0.93, scaleY: 0.93, duration: 70, yoyo: true, onComplete: () => this._modalEditarPerfil() }); });
 
         // Btn Salir
         const sBg = this.add.graphics();
@@ -148,12 +168,15 @@ export default class TutorScene extends BaseScene {
         y += 104;
 
         // Botón crear salón
-        const cbg = this.add.graphics(); cbg.fillStyle(0x7c3aed, 1); cbg.fillRoundedRect(margin, y, 210, 44, 22);
+        const _isP = this.user?.role==='parent';
+        const _C1 = _isP ? 0xea580c : 0x1d4ed8;
+        const _C2 = _isP ? 0xc2410c : 0x1e40af;
+        const cbg = this.add.graphics(); cbg.fillStyle(_C1, 1); cbg.fillRoundedRect(margin, y, 210, 44, 22);
         const ct = this.add.text(margin + 105, y + 22, '＋  Nuevo grupo', { fontSize: '15px', fontFamily: F, fontStyle: 'bold', fill: '#fff' }).setOrigin(0.5);
         const ch = this.add.rectangle(margin + 105, y + 22, 210, 44, 0, 0).setInteractive({ useHandCursor: true });
         this._add(cbg); this._add(ct); this._add(ch);
-        ch.on('pointerover', () => { cbg.clear(); cbg.fillStyle(0x6d28d9, 1); cbg.fillRoundedRect(margin, y, 210, 44, 22); this.tweens.add({targets:ct,scaleX:1.04,scaleY:1.04,duration:100}); });
-        ch.on('pointerout',  () => { cbg.clear(); cbg.fillStyle(0x7c3aed, 1); cbg.fillRoundedRect(margin, y, 210, 44, 22); this.tweens.add({targets:ct,scaleX:1,scaleY:1,duration:100}); });
+        ch.on('pointerover', () => { cbg.clear(); cbg.fillStyle(_C2, 1); cbg.fillRoundedRect(margin, y, 210, 44, 22); this.tweens.add({targets:ct,scaleX:1.04,scaleY:1.04,duration:100}); });
+        ch.on('pointerout',  () => { cbg.clear(); cbg.fillStyle(_C1, 1); cbg.fillRoundedRect(margin, y, 210, 44, 22); this.tweens.add({targets:ct,scaleX:1,scaleY:1,duration:100}); });
         ch.on('pointerdown', () => { this.tweens.add({targets:ct,scaleX:0.93,scaleY:0.93,duration:70,yoyo:true,onComplete:()=>this._modalNuevoSalon()}); });
         y += 58;
 
@@ -185,14 +208,17 @@ export default class TutorScene extends BaseScene {
         const bg = this.add.graphics();
         bg.fillStyle(0xffffff, 1); bg.lineStyle(1.5, 0xe9d5ff, 1); bg.fillRoundedRect(x, y, w, h, 14);
         this._add(bg);
-        // Barra lateral morada
-        const bar = this.add.graphics(); bar.fillStyle(0x7c3aed, 1); bar.fillRoundedRect(x, y, 5, h, 3);
+        // Barra lateral por rol
+        const _bColor = this.user?.role==='parent' ? 0xea580c : 0x1d4ed8;
+        const bar = this.add.graphics(); bar.fillStyle(_bColor, 1); bar.fillRoundedRect(x, y, 5, h, 3);
         this._add(bar);
 
         // Código badge
-        const codBg = this.add.graphics(); codBg.fillStyle(0xede9fe, 1); codBg.fillRoundedRect(x + w - 122, y + 14, 106, 28, 14);
+        const _codBgColor = this.user?.role==='parent' ? 0xffedd5 : 0xdbeafe;
+        const _codTColor  = this.user?.role==='parent' ? '#c2410c' : '#1e40af';
+        const codBg = this.add.graphics(); codBg.fillStyle(_codBgColor, 1); codBg.fillRoundedRect(x + w - 122, y + 14, 106, 28, 14);
         this._add(codBg);
-        const codT = this.add.text(x + w - 69, y + 28, `🔑 ${salon.codigo}`, { fontSize: '12px', fontFamily: F, fontStyle: 'bold', fill: '#7c3aed' }).setOrigin(0.5);
+        const codT = this.add.text(x + w - 69, y + 28, `🔑 ${salon.codigo}`, { fontSize: '12px', fontFamily: F, fontStyle: 'bold', fill: _codTColor }).setOrigin(0.5);
         this._add(codT);
 
         // Info salón
@@ -253,17 +279,19 @@ export default class TutorScene extends BaseScene {
         let   y       = startY;
 
         // ── Botón volver ──
-        const vBg = this.add.graphics(); vBg.fillStyle(0xffffff, 1); vBg.lineStyle(1.5, 0xe9d5ff, 1); vBg.fillRoundedRect(leftX, y, 170, 36, 18);
-        const vT  = this.add.text(leftX + 85, y + 18, '← Mis grupos', { fontSize: '13px', fontFamily: F, fontStyle: 'bold', fill: '#7c3aed' }).setOrigin(0.5);
+        const _vC = this.user?.role==='parent' ? {bd:0xfed7aa,tc:'#c2410c',hBg:0xfff7ed,hBd:0xea580c} : {bd:0xbfdbfe,tc:'#1d4ed8',hBg:0xeff6ff,hBd:0x1d4ed8};
+        const vBg = this.add.graphics(); vBg.fillStyle(0xffffff, 1); vBg.lineStyle(1.5, _vC.bd, 1); vBg.fillRoundedRect(leftX, y, 170, 36, 18);
+        const vT  = this.add.text(leftX + 85, y + 18, '← Mis grupos', { fontSize: '13px', fontFamily: F, fontStyle: 'bold', fill: _vC.tc }).setOrigin(0.5);
         const vH  = this.add.rectangle(leftX + 85, y + 18, 170, 36, 0, 0).setInteractive({ useHandCursor: true });
         this._add(vBg); this._add(vT); this._add(vH);
-        vH.on('pointerover', () => { vBg.clear(); vBg.fillStyle(0xf5f3ff, 1); vBg.lineStyle(2, 0x7c3aed, 1); vBg.fillRoundedRect(leftX, y, 170, 36, 18); });
-        vH.on('pointerout',  () => { vBg.clear(); vBg.fillStyle(0xffffff, 1); vBg.lineStyle(1.5, 0xe9d5ff, 1); vBg.fillRoundedRect(leftX, y, 170, 36, 18); });
+        vH.on('pointerover', () => { vBg.clear(); vBg.fillStyle(_vC.hBg, 1); vBg.lineStyle(2, _vC.hBd, 1); vBg.fillRoundedRect(leftX, y, 170, 36, 18); });
+        vH.on('pointerout',  () => { vBg.clear(); vBg.fillStyle(0xffffff, 1); vBg.lineStyle(1.5, _vC.bd, 1); vBg.fillRoundedRect(leftX, y, 170, 36, 18); });
         vH.on('pointerdown', () => { this.vista='salones'; this.salonActivo=null; this.estudianteSelec=null; this._recargar(); });
         y += 46;
 
         // ── Nombre del salón y código ──
-        const hnBg = this.add.graphics(); hnBg.fillStyle(0x7c3aed, 1); hnBg.fillRoundedRect(leftX, y, W - 60, 56, 14);
+        const _hC = this.user?.role==='parent' ? 0xea580c : 0x1d4ed8;
+        const hnBg = this.add.graphics(); hnBg.fillStyle(_hC, 1); hnBg.fillRoundedRect(leftX, y, W - 60, 56, 14);
         this._add(hnBg);
         const snT = this.add.text(leftX + 20, y + 14, salon.nombre, { fontSize: '20px', fontFamily: F, fontStyle: 'bold', fill: '#fff' });
         const sdT = this.add.text(leftX + 20, y + 38, salon.descripcion || 'Sin descripción', { fontSize: '12px', fontFamily: F, fill: 'rgba(255,255,255,0.8)' });
@@ -303,12 +331,14 @@ export default class TutorScene extends BaseScene {
         this._add(titT);
 
         // Botón Agregar
-        const aBg = this.add.graphics(); aBg.fillStyle(0x7c3aed, 1); aBg.fillRoundedRect(x + w - 98, y + 12, 82, 30, 15);
+        const _aC1 = this.user?.role==='parent' ? 0xea580c : 0x1d4ed8;
+        const _aC2 = this.user?.role==='parent' ? 0xc2410c : 0x1e40af;
+        const aBg = this.add.graphics(); aBg.fillStyle(_aC1, 1); aBg.fillRoundedRect(x + w - 98, y + 12, 82, 30, 15);
         const aT  = this.add.text(x + w - 57, y + 27, '＋ Agregar', { fontSize: '12px', fontFamily: F, fontStyle: 'bold', fill: '#fff' }).setOrigin(0.5);
         const aH  = this.add.rectangle(x + w - 57, y + 27, 82, 30, 0, 0).setInteractive({ useHandCursor: true });
         this._add(aBg); this._add(aT); this._add(aH);
-        aH.on('pointerover', () => { aBg.clear(); aBg.fillStyle(0x6d28d9, 1); aBg.fillRoundedRect(x+w-98, y+12, 82, 30, 15); this.tweens.add({targets:aT,scaleX:1.05,scaleY:1.05,duration:100}); });
-        aH.on('pointerout',  () => { aBg.clear(); aBg.fillStyle(0x7c3aed, 1); aBg.fillRoundedRect(x+w-98, y+12, 82, 30, 15); this.tweens.add({targets:aT,scaleX:1,scaleY:1,duration:100}); });
+        aH.on('pointerover', () => { aBg.clear(); aBg.fillStyle(_aC2, 1); aBg.fillRoundedRect(x+w-98, y+12, 82, 30, 15); this.tweens.add({targets:aT,scaleX:1.05,scaleY:1.05,duration:100}); });
+        aH.on('pointerout',  () => { aBg.clear(); aBg.fillStyle(_aC1, 1); aBg.fillRoundedRect(x+w-98, y+12, 82, 30, 15); this.tweens.add({targets:aT,scaleX:1,scaleY:1,duration:100}); });
         aH.on('pointerdown', () => { this.tweens.add({targets:aT,scaleX:0.9,scaleY:0.9,duration:60,yoyo:true,onComplete:()=>this._modalAgregarEstudiante(salon)}); });
 
         let ey = y + 50;
@@ -371,9 +401,10 @@ export default class TutorScene extends BaseScene {
         const precisionPct = totalJuegos > 0 ? Math.round((stats.logros / stats.totalLogros) * 100) : 0;
 
         // ── Tarjetas de métricas (3 colores) ──
+        const _isParentRole = this.user?.role==='parent';
         const metricas = [
-            { label: 'Total Puntos',        value: `${stats.points}`,      emoji: '⭐', color: 0x7c3aed, tcolor: '#fff' },
-            { label: 'Juegos Jugados',       value: `${totalJuegos}`,       emoji: '🎮', color: 0x2563eb, tcolor: '#fff' },
+            { label: 'Total Puntos',        value: `${stats.points}`,      emoji: '⭐', color: _isParentRole ? 0xf97316 : 0x7c3aed, tcolor: '#fff' },
+            { label: 'Juegos Jugados',       value: `${totalJuegos}`,       emoji: '🎮', color: _isParentRole ? 0xea580c : 0x2563eb, tcolor: '#fff' },
             { label: 'Logros Desbloqueados', value: `${stats.logros}/${stats.totalLogros}`, emoji: '🏆', color: 0x16a34a, tcolor: '#fff' },
         ];
         const mW = (w - 32) / 3, mGap = 16;
@@ -493,10 +524,11 @@ export default class TutorScene extends BaseScene {
         const mW=520,mH=340,mx=(W-mW)/2,my=(H-mH)/2;
         const panel=this.add.container(0,0); panel.setDepth(201); panel.setAlpha(0);
 
-        const sh=this.add.graphics(); sh.fillStyle(0x7c3aed,0.14); sh.fillRoundedRect(mx+4,my+8,mW,mH,22);
+        const _mC = this.user?.role==='parent' ? 0xea580c : 0x1d4ed8;
+        const sh=this.add.graphics(); sh.fillStyle(_mC,0.14); sh.fillRoundedRect(mx+4,my+8,mW,mH,22);
         const bg=this.add.graphics(); bg.fillStyle(0xffffff,1); bg.fillRoundedRect(mx,my,mW,mH,20);
-        const hdr=this.add.graphics(); hdr.fillStyle(0x7c3aed,1); hdr.fillRoundedRect(mx,my,mW,68,20);
-        const hFix=this.add.graphics(); hFix.fillStyle(0x7c3aed,1); hFix.fillRect(mx,my+44,mW,26);
+        const hdr=this.add.graphics(); hdr.fillStyle(_mC,1); hdr.fillRoundedRect(mx,my,mW,68,20);
+        const hFix=this.add.graphics(); hFix.fillStyle(_mC,1); hFix.fillRect(mx,my+44,mW,26);
         const titT=this.add.text(W/2,my+34,'🏫  Crear nuevo grupo',{fontSize:'19px',fontFamily:F,fontStyle:'bold',fill:'#fff'}).setOrigin(0.5);
 
         const xBg=this.add.graphics(); xBg.fillStyle(0xffffff,0.22); xBg.fillCircle(mx+mW-26,my+26,16);
@@ -731,4 +763,290 @@ export default class TutorScene extends BaseScene {
 
         this.tweens.add({targets:panel,alpha:1,scaleX:{from:0.86,to:1},scaleY:{from:0.86,to:1},duration:270,ease:'Back.easeOut'});
     }
+
+    // ════════════════════════════════════════════════════════
+    //  MODAL EDITAR PERFIL DEL TUTOR
+    // ════════════════════════════════════════════════════════
+    _modalEditarPerfil() {
+        const W = this.W, H = this.H;
+        const u = this.user;
+
+        // Avatares según rol exacto del tutor
+        const TUTOR_AVATARS = u.role==='parent'
+            ? ['parent1','parent2','parent3','parent4']
+            : ['tutor1','tutor2','tutor3','tutor4'];
+
+        const ov = this.add.graphics(); ov.fillStyle(0x000000,0.56); ov.fillRect(0,0,W,H); ov.setDepth(300).setInteractive();
+
+        const mW = 680, mH = 480;
+        const mx = (W-mW)/2, my = (H-mH)/2;
+        const panel = this.add.container(0,0); panel.setDepth(301); panel.setAlpha(0);
+
+        const sh = this.add.graphics(); sh.fillStyle(0x7c3aed,0.14); sh.fillRoundedRect(mx+4,my+8,mW,mH,22);
+        const bg = this.add.graphics(); bg.fillStyle(0xffffff,1); bg.fillRoundedRect(mx,my,mW,mH,20);
+        const hdr = this.add.graphics(); hdr.fillGradientStyle(0x7c3aed,0x7c3aed,0xec4899,0xec4899,1); hdr.fillRoundedRect(mx,my,mW,70,20);
+        const hFx = this.add.graphics(); hFx.fillStyle(0x7c3aed,1); hFx.fillRect(mx,my+46,mW,27);
+        const titT = this.add.text(W/2,my+35,'✏️  Editar mi perfil',{fontSize:'20px',fontFamily:F,fontStyle:'bold',fill:'#fff'}).setOrigin(0.5);
+
+        // X cerrar
+        const xBg = this.add.graphics(); xBg.fillStyle(0xffffff,0.22); xBg.fillCircle(mx+mW-28,my+28,17);
+        const xT  = this.add.text(mx+mW-28,my+28,'✕',{fontSize:'16px',fontFamily:F,fontStyle:'bold',fill:'#fff'}).setOrigin(0.5);
+        const xH  = this.add.rectangle(mx+mW-28,my+28,38,38,0,0).setInteractive({useHandCursor:true});
+        xH.on('pointerover',()=>{xBg.clear();xBg.fillStyle(0xffffff,0.42);xBg.fillCircle(mx+mW-28,my+28,17);});
+        xH.on('pointerout', ()=>{xBg.clear();xBg.fillStyle(0xffffff,0.22);xBg.fillCircle(mx+mW-28,my+28,17);});
+        xH.on('pointerdown',()=>this.tweens.add({targets:[panel,ov],alpha:0,duration:220,onComplete:()=>{panel.destroy();ov.destroy();}}));
+        panel.add([sh,bg,hFx,hdr,titT,xBg,xT,xH]);
+
+        // ── Nombre ──
+        const lN = this.add.text(mx+36,my+86,'Nombre completo',{fontSize:'14px',fontFamily:F,fontStyle:'bold',fill:'#374151'});
+        panel.add(lN);
+        const inBg = this.add.graphics(); inBg.lineStyle(1.5,0xd8b4fe,1); inBg.fillStyle(0xfaf5ff,1); inBg.fillRoundedRect(mx+36,my+110,mW-72,44,12);
+        panel.add(inBg);
+        const inNom = this.add.dom(mx+36+(mW-72)/2,my+132,'input',{
+            width:(mW-110)+'px',height:'28px',border:'none',outline:'none',
+            background:'transparent',fontSize:'15px',fontFamily:F.replace(/"/g,"'"),color:'#1f1235',padding:'0 10px'
+        });
+        inNom.node.value = u.name || '';
+        inNom.node.addEventListener('focus',()=>{inBg.clear();inBg.lineStyle(2,0x7c3aed,1);inBg.fillStyle(0xfaf5ff,1);inBg.fillRoundedRect(mx+36,my+110,mW-72,44,12);});
+        inNom.node.addEventListener('blur', ()=>{inBg.clear();inBg.lineStyle(1.5,0xd8b4fe,1);inBg.fillStyle(0xfaf5ff,1);inBg.fillRoundedRect(mx+36,my+110,mW-72,44,12);});
+        panel.add(inNom);
+
+        // ── Selector de foto ──
+        const lAv = this.add.text(mx+36,my+168,'Elige tu foto de perfil',{fontSize:'14px',fontFamily:F,fontStyle:'bold',fill:'#374151'});
+        panel.add(lAv);
+
+        let avatarSel = u.avatar || 'tutor1';
+        const avBtns  = [];
+        const aPerRow = 4, aW = 82, aH = 76, aGap = 14;
+
+        TUTOR_AVATARS.forEach((key,i) => {
+            const ax = mx+36 + i%aPerRow*(aW+aGap);
+            const ay = my+196 + Math.floor(i/aPerRow)*(aH+12);
+
+            const avBg = this.add.graphics();
+            const esSel = key===avatarSel;
+            avBg.fillStyle(esSel?0xede9fe:0xf9fafb,1);
+            avBg.lineStyle(esSel?2.5:1, esSel?0x7c3aed:0xe5e7eb,1);
+            avBg.fillRoundedRect(ax,ay,aW,aH,12);
+
+            let avEl;
+            if (this.textures.exists(key)) {
+                avEl = this.add.image(ax+aW/2,ay+aH/2-4,key).setDisplaySize(50,50).setOrigin(0.5);
+            } else {
+                avEl = this.add.text(ax+aW/2,ay+aH/2-4,`${i+1}`,{fontSize:'24px',fontFamily:F,fontStyle:'bold',fill:esSel?'#7c3aed':'#9ca3af'}).setOrigin(0.5);
+            }
+
+            const avHit = this.add.rectangle(ax+aW/2,ay+aH/2,aW,aH,0,0).setInteractive({useHandCursor:true});
+            panel.add([avBg,avEl,avHit]);
+            avBtns.push({key,bg:avBg,ax,ay,aW,aH});
+
+            const redraw = () => avBtns.forEach(b=>{
+                b.bg.clear();
+                const sel=b.key===avatarSel;
+                b.bg.fillStyle(sel?0xede9fe:0xf9fafb,1);
+                b.bg.lineStyle(sel?2.5:1,sel?0x7c3aed:0xe5e7eb,1);
+                b.bg.fillRoundedRect(b.ax,b.ay,b.aW,b.aH,12);
+            });
+
+            avHit.on('pointerdown',()=>{ avatarSel=key; redraw(); });
+            avHit.on('pointerover', ()=>{ if(key!==avatarSel){avBg.clear();avBg.fillStyle(0xf5f3ff,1);avBg.lineStyle(1.5,0xa78bda,1);avBg.fillRoundedRect(ax,ay,aW,aH,12);} });
+            avHit.on('pointerout',  ()=>{ if(key!==avatarSel){avBg.clear();avBg.fillStyle(0xf9fafb,1);avBg.lineStyle(1,0xe5e7eb,1);avBg.fillRoundedRect(ax,ay,aW,aH,12);} });
+        });
+
+        // ── Botones ──
+        const btnY = my+mH-64;
+
+        // Cancelar
+        const canBg=this.add.graphics(); canBg.fillStyle(0xf3f4f6,1); canBg.lineStyle(1,0xe5e7eb,1); canBg.fillRoundedRect(mx+36,btnY,126,44,22);
+        const canT=this.add.text(mx+99,btnY+22,'Cancelar',{fontSize:'14px',fontFamily:F,fontStyle:'bold',fill:'#6b7280'}).setOrigin(0.5);
+        const canH=this.add.rectangle(mx+99,btnY+22,126,44,0,0).setInteractive({useHandCursor:true});
+        panel.add([canBg,canT,canH]);
+        canH.on('pointerover',()=>{canBg.clear();canBg.fillStyle(0xe5e7eb,1);canBg.lineStyle(1,0xd1d5db,1);canBg.fillRoundedRect(mx+36,btnY,126,44,22);});
+        canH.on('pointerout', ()=>{canBg.clear();canBg.fillStyle(0xf3f4f6,1);canBg.lineStyle(1,0xe5e7eb,1);canBg.fillRoundedRect(mx+36,btnY,126,44,22);});
+        canH.on('pointerdown',()=>this.tweens.add({targets:[panel,ov],alpha:0,duration:200,onComplete:()=>{panel.destroy();ov.destroy();}}));
+
+        // Guardar
+        const savBg=this.add.graphics(); savBg.fillStyle(0x7c3aed,1); savBg.fillRoundedRect(mx+mW-168,btnY,132,44,22);
+        const savT=this.add.text(mx+mW-102,btnY+22,'💾 Guardar',{fontSize:'14px',fontFamily:F,fontStyle:'bold',fill:'#fff'}).setOrigin(0.5);
+        const savH=this.add.rectangle(mx+mW-102,btnY+22,132,44,0,0).setInteractive({useHandCursor:true});
+        panel.add([savBg,savT,savH]);
+        savH.on('pointerover',()=>{savBg.clear();savBg.fillStyle(0x6d28d9,1);savBg.fillRoundedRect(mx+mW-168,btnY,132,44,22);this.tweens.add({targets:savT,scaleX:1.06,scaleY:1.06,duration:100});});
+        savH.on('pointerout', ()=>{savBg.clear();savBg.fillStyle(0x7c3aed,1);savBg.fillRoundedRect(mx+mW-168,btnY,132,44,22);this.tweens.add({targets:savT,scaleX:1,scaleY:1,duration:100});});
+        savH.on('pointerdown',()=>{
+            this.tweens.add({targets:savT,scaleX:0.92,scaleY:0.92,duration:70,yoyo:true,onComplete:()=>{
+                const nuevoNombre = inNom.node.value.trim() || u.name;
+                u.name   = nuevoNombre;
+                u.avatar = avatarSel;
+                saveUserData(u);
+                this.user = getUserData(u.id);
+                panel.destroy(); ov.destroy();
+                this.mostrarToast(`✅ Perfil actualizado: ${nuevoNombre}`, 0x7c3aed);
+                this.time.delayedCall(600,()=>this._recargar());
+            }});
+        });
+
+        this.tweens.add({targets:panel,alpha:1,scaleX:{from:0.88,to:1},scaleY:{from:0.88,to:1},duration:320,ease:'Back.easeOut'});
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  MODAL EDITAR PERFIL — Tutor (Profesor / Padre / Madre)
+    //  Permite cambiar nombre y foto, igual que el estudiante
+    // ════════════════════════════════════════════════════════
+    _modalEditarPerfil() {
+        const W = this.W, H = this.H;
+        const u = this.user;
+        const F = '"Segoe UI",Arial,sans-serif';
+
+        // Avatares según rol exacto del tutor
+        const TUTOR_AVATARS = u.role==='parent'
+            ? ['parent1','parent2','parent3','parent4']
+            : ['tutor1','tutor2','tutor3','tutor4'];
+
+        const ov = this.add.graphics();
+        ov.fillStyle(0x000000, 0.56); ov.fillRect(0,0,W,H);
+        ov.setDepth(200).setInteractive();
+
+        const mW = 640, mH = 490;
+        const mx = (W-mW)/2, my = (H-mH)/2;
+        const panel = this.add.container(0,0);
+        panel.setDepth(201); panel.setAlpha(0);
+
+        // Fondo + header
+        const sh  = this.add.graphics(); sh.fillStyle(0x7c3aed,0.14); sh.fillRoundedRect(mx+4,my+8,mW,mH,22);
+        const bg  = this.add.graphics(); bg.fillStyle(0xffffff,1); bg.fillRoundedRect(mx,my,mW,mH,20);
+        const _pC1 = u.role==='parent' ? 0xea580c : 0x1e40af;
+        const _pC2 = u.role==='parent' ? 0xf97316 : 0x2563eb;
+        const hdr = this.add.graphics();
+        hdr.fillGradientStyle(_pC1,_pC1,_pC2,_pC2,1);
+        hdr.fillRoundedRect(mx,my,mW,70,20);
+        const hFx = this.add.graphics(); hFx.fillStyle(_pC1,1); hFx.fillRect(mx,my+46,mW,28);
+        const titT = this.add.text(W/2, my+35, '✏️  Editar Perfil', {
+            fontSize:'20px', fontFamily:F, fontStyle:'bold', fill:'#fff'
+        }).setOrigin(0.5);
+
+        // X cerrar
+        const xBg = this.add.graphics(); xBg.fillStyle(0xffffff,0.22); xBg.fillCircle(mx+mW-28,my+28,17);
+        const xT  = this.add.text(mx+mW-28,my+28,'✕',{fontSize:'15px',fontFamily:F,fontStyle:'bold',fill:'#fff'}).setOrigin(0.5);
+        const xH  = this.add.rectangle(mx+mW-28,my+28,38,38,0,0).setInteractive({useHandCursor:true});
+        xH.on('pointerover', ()=>{ xBg.clear(); xBg.fillStyle(0xffffff,0.42); xBg.fillCircle(mx+mW-28,my+28,17); });
+        xH.on('pointerout',  ()=>{ xBg.clear(); xBg.fillStyle(0xffffff,0.22); xBg.fillCircle(mx+mW-28,my+28,17); });
+        xH.on('pointerdown', ()=> this.tweens.add({targets:[panel,ov],alpha:0,duration:220,onComplete:()=>{panel.destroy();ov.destroy();}}));
+        panel.add([sh,bg,hFx,hdr,titT,xBg,xT,xH]);
+
+        // ── Campo Nombre ──
+        const lNom = this.add.text(mx+36, my+88, 'Nombre completo', {
+            fontSize:'14px', fontFamily:F, fontStyle:'bold', fill:'#374151'
+        });
+        panel.add(lNom);
+
+        const inBg = this.add.graphics();
+        inBg.lineStyle(1.5,0xbfdbfe,1); inBg.fillStyle(0xf0f9ff,1);
+        inBg.fillRoundedRect(mx+36,my+112,mW-72,44,12);
+        panel.add(inBg);
+
+        const inNom = this.add.dom(mx+36+(mW-72)/2, my+134, 'input', {
+            width:(mW-110)+'px', height:'28px', border:'none', outline:'none',
+            background:'transparent', fontSize:'15px',
+            fontFamily:F.replace(/"/g,"'"), color:'#1e3a8a', padding:'0 10px'
+        });
+        inNom.node.value = u.name || '';
+        inNom.node.addEventListener('focus', ()=>{ inBg.clear(); inBg.lineStyle(2,0x7c3aed,1); inBg.fillStyle(0xf0f9ff,1); inBg.fillRoundedRect(mx+36,my+112,mW-72,44,12); });
+        inNom.node.addEventListener('blur',  ()=>{ inBg.clear(); inBg.lineStyle(1.5,0xbfdbfe,1); inBg.fillStyle(0xf0f9ff,1); inBg.fillRoundedRect(mx+36,my+112,mW-72,44,12); });
+        panel.add(inNom);
+
+        // ── Selector de avatar ──
+        const lAv = this.add.text(mx+36, my+170, 'Elige tu foto de perfil', {
+            fontSize:'14px', fontFamily:F, fontStyle:'bold', fill:'#374151'
+        });
+        panel.add(lAv);
+
+        let avatarSel = u.avatar || 'tutor1';
+        const avBtns  = [];
+        const aPerRow = 4, aW = 88, aH = 80, aGap = 16;
+
+        TUTOR_AVATARS.forEach((key, i) => {
+            const ax = mx + 36 + i % aPerRow * (aW + aGap);
+            const ay = my + 198 + Math.floor(i / aPerRow) * (aH + 12);
+
+            const avBg = this.add.graphics();
+            const esSel = key === avatarSel;
+            avBg.fillStyle(esSel ? 0xdbeafe : 0xf9fafb, 1);
+            avBg.lineStyle(esSel ? 2.5 : 1, esSel ? 0x1d4ed8 : 0xe5e7eb, 1);
+            avBg.fillRoundedRect(ax, ay, aW, aH, 14);
+
+            // Imagen o fallback
+            let avEl;
+            if (this.textures.exists(key)) {
+                avEl = this.add.image(ax+aW/2, ay+aH/2-4, key).setDisplaySize(52,52).setOrigin(0.5);
+            } else {
+                avEl = this.add.text(ax+aW/2, ay+aH/2-4,
+                    key.charAt(0).toUpperCase()+key.slice(1),
+                    {fontSize:'12px',fontFamily:F,fill:'#374151'}
+                ).setOrigin(0.5);
+            }
+
+            const avHit = this.add.rectangle(ax+aW/2,ay+aH/2,aW,aH,0,0).setInteractive({useHandCursor:true});
+            panel.add([avBg, avEl, avHit]);
+            avBtns.push({ key, bg:avBg, ax, ay, aW, aH });
+
+            const _redraw = () => {
+                avBtns.forEach(b => {
+                    b.bg.clear();
+                    const sel = b.key === avatarSel;
+                    b.bg.fillStyle(sel ? 0xdbeafe : 0xf9fafb, 1);
+                    b.bg.lineStyle(sel ? 2.5 : 1, sel ? 0x1d4ed8 : 0xe5e7eb, 1);
+                    b.bg.fillRoundedRect(b.ax,b.ay,b.aW,b.aH,14);
+                });
+            };
+
+            avHit.on('pointerdown', ()=>{ avatarSel=key; _redraw(); });
+            avHit.on('pointerover', ()=>{ if(key!==avatarSel){ avBg.clear(); avBg.fillStyle(0xeff6ff,1); avBg.lineStyle(1.5,0x93c5fd,1); avBg.fillRoundedRect(ax,ay,aW,aH,14); } });
+            avHit.on('pointerout',  ()=>{ if(key!==avatarSel){ avBg.clear(); avBg.fillStyle(0xf9fafb,1); avBg.lineStyle(1,0xe5e7eb,1); avBg.fillRoundedRect(ax,ay,aW,aH,14); } });
+        });
+
+        // ── Botones Cancelar / Guardar ──
+        const btnY = my + mH - 66;
+
+        const canBg = this.add.graphics(); canBg.fillStyle(0xf3f4f6,1); canBg.lineStyle(1,0xe5e7eb,1); canBg.fillRoundedRect(mx+36,btnY,126,46,23);
+        const canT  = this.add.text(mx+99,btnY+23,'Cancelar',{fontSize:'14px',fontFamily:F,fontStyle:'bold',fill:'#6b7280'}).setOrigin(0.5);
+        const canH  = this.add.rectangle(mx+99,btnY+23,126,46,0,0).setInteractive({useHandCursor:true});
+        panel.add([canBg,canT,canH]);
+        canH.on('pointerover', ()=>{ canBg.clear(); canBg.fillStyle(0xe5e7eb,1); canBg.lineStyle(1,0xd1d5db,1); canBg.fillRoundedRect(mx+36,btnY,126,46,23); });
+        canH.on('pointerout',  ()=>{ canBg.clear(); canBg.fillStyle(0xf3f4f6,1); canBg.lineStyle(1,0xe5e7eb,1); canBg.fillRoundedRect(mx+36,btnY,126,46,23); });
+        canH.on('pointerdown', ()=> this.tweens.add({targets:[panel,ov],alpha:0,duration:200,onComplete:()=>{panel.destroy();ov.destroy();}}));
+
+        const savBg = this.add.graphics(); savBg.fillStyle(_pC1,1); savBg.fillRoundedRect(mx+mW-170,btnY,134,46,23);
+        const savT  = this.add.text(mx+mW-103,btnY+23,'💾 Guardar',{fontSize:'14px',fontFamily:F,fontStyle:'bold',fill:'#fff'}).setOrigin(0.5);
+        const savH  = this.add.rectangle(mx+mW-103,btnY+23,134,46,0,0).setInteractive({useHandCursor:true});
+        panel.add([savBg,savT,savH]);
+        savH.on('pointerover', ()=>{ savBg.clear(); savBg.fillStyle(_pC2,1); savBg.fillRoundedRect(mx+mW-170,btnY,134,46,23); this.tweens.add({targets:savT,scaleX:1.06,scaleY:1.06,duration:110}); });
+        savH.on('pointerout',  ()=>{ savBg.clear(); savBg.fillStyle(_pC1,1); savBg.fillRoundedRect(mx+mW-170,btnY,134,46,23); this.tweens.add({targets:savT,scaleX:1,scaleY:1,duration:110}); });
+        savH.on('pointerdown', ()=>{
+            this.tweens.add({ targets:savT, scaleX:0.92, scaleY:0.92, duration:70, yoyo:true, onComplete:()=>{
+                const nuevoNombre = inNom.node.value.trim();
+                if (!nuevoNombre) { this.mostrarToast('⚠️ El nombre no puede estar vacío', 0xdc2626); return; }
+                const userData = getUserData(u.id);
+                if (!userData) return;
+                userData.name   = nuevoNombre;
+                userData.avatar = avatarSel;
+                saveUserData(userData);
+                this.user = getUserData(u.id);  // refrescar
+                // Actualizar el nombre visible en el topbar sin recargar toda la escena
+                tNombre && tNombre.setText(nuevoNombre);
+                panel.destroy(); ov.destroy();
+                this.mostrarToast(`✅ Perfil actualizado correctamente`, 0x16a34a);
+                // Recargar para reflejar cambios en el avatar del topbar
+                this.time.delayedCall(800, ()=>{ this._recargar(); });
+            }});
+        });
+
+        this.tweens.add({targets:panel, alpha:1, scaleX:{from:0.88,to:1}, scaleY:{from:0.88,to:1}, duration:320, ease:'Back.easeOut'});
+
+        // Guardar referencia al texto del nombre para actualizarlo en vivo
+        this._tNombreTopbar = this.children.getAll().find(
+            obj => obj.type === 'Text' && obj.text === (u.name || u.username)
+        );
+    }
+
+
 }

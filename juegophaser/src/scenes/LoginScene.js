@@ -9,6 +9,14 @@ export default class LoginScene extends Phaser.Scene {
         this._cx=0; this._cy=0; this._cardW=480;
     }
 
+    preload() {
+        for (let i = 1; i <= 4; i++) {
+            if (!this.textures.exists(`student${i}`)) this.load.image(`student${i}`, `assets/images/student${i}.png`);
+            if (!this.textures.exists(`tutor${i}`))   this.load.image(`tutor${i}`,   `assets/images/tutor${i}.png`);
+            if (!this.textures.exists(`parent${i}`))  this.load.image(`parent${i}`,  `assets/images/parent${i}.png`);
+        }
+    }
+
     create() {
         const W = this.scale.width, H = this.scale.height;
         const bg = this.add.graphics();
@@ -106,9 +114,7 @@ export default class LoginScene extends Phaser.Scene {
             }
             else{this.toast('❌ Usuario o contraseña incorrectos',0xdc2626);}
         });y+=62;
-        this.separador(fX,fW,y);y+=18;
-        this.cuentaDemo(cx,cy,cW,y);y+=100;
-        this.accesoRapido(fX,fW,cx,cW,y,iUser.node,iPass.node);
+
     }
 
     crearFormRegistro() {
@@ -131,7 +137,7 @@ export default class LoginScene extends Phaser.Scene {
             if(!u||!p||!n){this.toast('⚠️ Completa todos los campos',0xdc2626);return;}
             if(u.length<3){this.toast('⚠️ Usuario: mínimo 3 caracteres',0xdc2626);return;}
             if(p.length<4){this.toast('⚠️ Contraseña: mínimo 4 caracteres',0xdc2626);return;}
-            const role = this.rolSeleccionado.startsWith('tutor') ? 'tutor' : 'student';
+            const role = this.rolSeleccionado; // 'student', 'teacher' o 'parent'
             const res=registerUser(u,p,n,role,'avatar1');
             if(res.error){this.toast(`❌ ${res.error}`,0xdc2626);}
             else{this.toast('✓ ¡Cuenta creada! Ahora inicia sesión',0x16a34a);this.time.delayedCall(1200,()=>this.cambiarTab('login'));}
@@ -175,34 +181,10 @@ export default class LoginScene extends Phaser.Scene {
         this.contenedorForm.add([bBg,ov,t,hit]);
     }
 
-    cuentaDemo(cx,cy,cW,y) {
-        const fX=cx+24,fW=cW-48;
-        const bg=this.add.graphics(); bg.fillStyle(0xeff6ff,1); bg.lineStyle(1,0xbfdbfe,1); bg.fillRoundedRect(fX,y,fW,80,12);
-        const t1=this.add.text(cx+cW/2,y+16,'💡  Cuentas de demostración',{fontSize:'12px',fontFamily:'"Segoe UI",Arial',fontStyle:'bold',fill:'#1d6fce'}).setOrigin(0.5);
-        const t2=this.add.text(cx+cW/2,y+42,'sofia / 1234  •  lucas / 1234  •  maria / 1234',{fontSize:'12px',fontFamily:'"Segoe UI",Arial',fill:'#3b5a8a'}).setOrigin(0.5);
-        const t3=this.add.text(cx+cW/2,y+62,'profe / admin  (rol: profesor)',{fontSize:'11px',fontFamily:'"Segoe UI",Arial',fill:'#6b7280'}).setOrigin(0.5);
-        this.contenedorForm.add([bg,t1,t2,t3]);
-    }
 
-    accesoRapido(fX,fW,cx,cW,y,inputUser,inputPass) {
-        const titulo=this.add.text(cx+cW/2,y,'O acceso rápido:',{fontSize:'13px',fontFamily:'"Segoe UI",Arial',fill:'#9880c0'}).setOrigin(0.5);
-        this.contenedorForm.add(titulo);
-        const usuarios=[{n:'Sofía',u:'sofia',e:'😊'},{n:'Lucas',u:'lucas',e:'🦸'}];
-        const bW=(fW-20)/2;
-        usuarios.forEach((u,i)=>{
-            const bx=fX+i*(bW+20),by=y+18;
-            const bg=this.add.graphics(); bg.fillStyle(0xf5f0ff,1); bg.lineStyle(1.5,0xd8b4fe,1); bg.fillRoundedRect(bx,by,bW,50,10);
-            const t=this.add.text(bx+bW/2,by+25,`${u.e} ${u.n}`,{fontSize:'13px',fontFamily:'"Segoe UI",Arial',fontStyle:'bold',fill:'#7c3aed'}).setOrigin(0.5);
-            const hit=this.add.rectangle(bx+bW/2,by+25,bW,50,0,0).setInteractive({useHandCursor:true});
-            this.contenedorForm.add([bg,t,hit]);
-            hit.on('pointerdown',()=>{inputUser.value=u.u;inputPass.value='1234';this.toast(`✓ Seleccionado: ${u.n}`,0x16a34a);});
-            hit.on('pointerover',()=>{bg.clear();bg.fillStyle(0xede9fe,1);bg.lineStyle(2,0x7c3aed,1);bg.fillRoundedRect(bx,by,bW,50,10);});
-            hit.on('pointerout', ()=>{bg.clear();bg.fillStyle(0xf5f0ff,1);bg.lineStyle(1.5,0xd8b4fe,1);bg.fillRoundedRect(bx,by,bW,50,10);});
-        });
-    }
 
     selectorRol(fX,fW,y) {
-        const roles=[{id:'student',label:'Estudiante',e:'📖'},{id:'tutor',label:'Profesor',e:'👨‍🏫'},{id:'tutor_parent',label:'Padre/Madre',e:'🏠'}];
+        const roles=[{id:'student',label:'Estudiante',e:'📖'},{id:'teacher',label:'Profesor',e:'👨‍🏫'},{id:'parent',label:'Padre/Madre',e:'🏠'}];
         const bW=(fW-20)/3;
         this._rolesBgs=[];
         roles.forEach((r,i)=>{
@@ -211,7 +193,7 @@ export default class LoginScene extends Phaser.Scene {
             this.contenedorForm.add(bg);
             this.dibujarRol(bg,bx,by,bW,60,r.id===this.rolSeleccionado);
             const e=this.add.text(bx+bW/2,by+20,r.e,{fontSize:'20px',fontFamily:'"Segoe UI",Arial'}).setOrigin(0.5);
-            const l=this.add.text(bx+bW/2,by+45,r.label,{fontSize:r.id==='tutor_parent'?'10px':'12px',fontFamily:'"Segoe UI",Arial',fontStyle:'bold',fill:r.id===this.rolSeleccionado?'#7c3aed':'#6b7280'}).setOrigin(0.5);
+            const l=this.add.text(bx+bW/2,by+45,r.label,{fontSize:r.id==='parent'?'10px':'12px',fontFamily:'"Segoe UI",Arial',fontStyle:'bold',fill:r.id===this.rolSeleccionado?'#7c3aed':'#6b7280'}).setOrigin(0.5);
             this.contenedorForm.add([e,l]);
             const hit=this.add.rectangle(bx+bW/2,by+30,bW,60,0,0).setInteractive({useHandCursor:true});
             this.contenedorForm.add(hit);

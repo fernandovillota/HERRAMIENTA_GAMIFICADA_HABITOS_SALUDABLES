@@ -9,10 +9,14 @@ const storage = {
 };
 
 // ── Roles ────────────────────────────────────────────────
-// 'student' → sólo juegos y perfil
-// 'tutor'   → Profesor / Padre / Madre → panel de salones
-export const isTutor   = (u) => u && (u.role==='tutor'||u.role==='teacher');
+// Roles del sistema:
+// 'student' → Estudiante   → menú principal + juegos + perfil (verde)
+// 'teacher' → Profesor     → panel del tutor (azul)
+// 'parent'  → Padre/Madre  → panel del tutor (naranja)
+export const isTutor   = (u) => u && (u.role==='teacher' || u.role==='parent' || u.role==='tutor');
 export const isStudent = (u) => u && u.role==='student';
+export const isTeacher = (u) => u && (u.role==='teacher');
+export const isParent  = (u) => u && (u.role==='parent');
 
 const _bs  = () => ({ current:0, longest:0, lastPlayDate:'', daysCompleted:[] });
 const _bp  = () => ({ food:0, hygiene:0, activity:0 });
@@ -23,10 +27,18 @@ export const PREDEFINED_USERS = [
     { id:'2',username:'lucas', password:'1234', name:'Lucas',        avatar:'student1',role:'student',points:0,level:1,achievements:[],featuredAchievement:null,streak:_bs(),moduleProgress:_bp() },
     { id:'3',username:'maria', password:'1234', name:'María',        avatar:'student4',role:'student',points:0,level:1,achievements:[],featuredAchievement:null,streak:_bs(),moduleProgress:_bp() },
     { id:'4',username:'diego', password:'1234', name:'Diego',        avatar:'student3',role:'student',points:0,level:1,achievements:[],featuredAchievement:null,streak:_bs(),moduleProgress:_bp() },
-    { id:'5',username:'profe', password:'admin',name:'Profesora Ana',avatar:'tutor2',  role:'tutor',  points:0,level:1,achievements:[],featuredAchievement:null,streak:_bs(),moduleProgress:_bp() },
+    { id:'5',username:'profe', password:'admin',name:'Profesora Ana',avatar:'tutor2',  role:'teacher',points:0,level:1,achievements:[],featuredAchievement:null,streak:_bs(),moduleProgress:_bp() },
+    { id:'6',username:'padre', password:'1234', name:'Carlos Padre',  avatar:'parent1', role:'parent', points:0,level:1,achievements:[],featuredAchievement:null,streak:_bs(),moduleProgress:_bp() },
 ];
 
-const _init = () => { if(!storage.get('habitos_initialized')){ storage.set('all_users',JSON.stringify(PREDEFINED_USERS)); storage.set('habitos_initialized','1'); } };
+const DATA_VERSION = '3';
+const _init = () => {
+    if (storage.get('habitos_initialized') !== DATA_VERSION) {
+        storage.set('all_users', JSON.stringify(PREDEFINED_USERS));
+        storage.set('habitos_initialized', DATA_VERSION);
+        storage.remove('habitos_salones');
+    }
+};
 _init();
 
 // ── CRUD ─────────────────────────────────────────────────
@@ -45,17 +57,30 @@ export const clearCurrentUser = ()   => storage.remove('current_user_id');
 
 // ── Auth ─────────────────────────────────────────────────
 export const loginUser = (username,password) => {
-    const user=getAllUsers().find(u=>u.username===username&&u.password===password);
-    if(user){setCurrentUser(user.id);return user;}
+    const all = getAllUsers();
+    const user = all.find(u => u.username===username && u.password===password);
+    if (user) {
+        // Normalizar roles de versiones anteriores
+        const legacyTutor  = ['tutor','profesor','docente'];
+        const legacyStudent = ['estudiante','alumno'];
+        if (legacyTutor.includes(user.role))   { user.role='tutor';   saveUserData(user); }
+        if (legacyStudent.includes(user.role)) { user.role='student'; saveUserData(user); }
+        setCurrentUser(user.id);
+        return getUserData(user.id);
+    }
     return null;
 };
 
 export const registerUser = (username,password,name,role='student',avatar='avatar1') => {
-    const normalizedRole=(role==='teacher'||role==='parent'||role==='tutor')?'tutor':'student';
+    // Roles válidos: 'student', 'teacher', 'parent'
+    const validRoles = ['student','teacher','parent'];
+    const normalizedRole = validRoles.includes(role) ? role : (role==='tutor'?'teacher':'student');
     const all=getAllUsers();
     if(all.find(u=>u.username===username))return{error:'Ese usuario ya existe'};
     // Asignar avatar por defecto según rol si no se especificó
-    const _roleAvatars = normalizedRole === 'tutor' ? ['tutor1','tutor2','tutor3','tutor4','parent1','parent2','parent3','parent4'] : ['student1','student2','student3','student4'];
+    const _roleAvatars = normalizedRole === 'teacher' ? ['tutor1','tutor2','tutor3','tutor4'] :
+                         normalizedRole === 'parent'  ? ['parent1','parent2','parent3','parent4'] :
+                                                        ['student1','student2','student3','student4'];
     const _isGeneric = !avatar || avatar.startsWith('avatar');
     const finalAvatar = _isGeneric ? _roleAvatars[Math.floor(Math.random() * _roleAvatars.length)] : avatar;
     const u={ id:Date.now().toString(),username,password,name,avatar:finalAvatar,role:normalizedRole,
@@ -66,7 +91,7 @@ export const registerUser = (username,password,name,role='student',avatar='avata
 // ── Puntos ───────────────────────────────────────────────
 export const addPoints = (userId,pts) => {
     const u=getUserData(userId); if(!u)return null;
-    u.points=(u.points||0)+pts; u.level=Math.floor(u.points/100)+1;
+    u.points=(u.points||0)+pts; u.level=Math.max(1,Math.floor(u.points/100)+1);
     saveUserData(u); return u;
 };
 
@@ -85,7 +110,7 @@ export const unlockAchievement = (userId,id) => {
     if(!u.achievements.includes(id)){
         u.achievements.push(id);
         const a=ACHIEVEMENTS.find(a=>a.id===id);
-        if(a){u.points=(u.points||0)+a.points;u.level=Math.floor(u.points/100)+1;}
+        if(a){u.points=(u.points||0)+a.points;u.level=Math.max(1,Math.floor(u.points/100)+1);}
         saveUserData(u);
     }
     return u;
@@ -117,7 +142,7 @@ export const updateStreak = (userId) => {
     if(u.streak.current>(u.streak.longest||0))u.streak.longest=u.streak.current;
     const sc=u.streak.current;
     const sp=sc<=7?sc*5:sc<=15?sc*10:sc*15;
-    u.points=(u.points||0)+sp; u.level=Math.floor(u.points/100)+1;
+    u.points=(u.points||0)+sp; u.level=Math.max(1,Math.floor(u.points/100)+1);
     u.streak.lastPlayDate=today;
     if(!Array.isArray(u.streak.daysCompleted))u.streak.daysCompleted=[];
     if(!u.streak.daysCompleted.includes(today)){

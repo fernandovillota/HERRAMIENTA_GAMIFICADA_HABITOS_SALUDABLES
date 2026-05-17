@@ -1,5 +1,5 @@
 // src/scenes/ProfileScene.js
-import { renderAvatar } from './BaseScene.js';
+import BaseScene, { renderAvatar } from './BaseScene.js';
 import { getCurrentUser, clearCurrentUser, getStreakCalendar, saveUserData } from '../utils/userData.js';
 import { ACHIEVEMENTS } from '../utils/gameData.js';
 
@@ -8,7 +8,7 @@ const F = '"Segoe UI",Arial,sans-serif';
 const STUDENT_AVATARS = ['student1','student2','student3','student4'];
 const TUTOR_AVATARS   = ['tutor1','tutor2','tutor3','tutor4','parent1','parent2','parent3','parent4'];
 
-export default class ProfileScene extends Phaser.Scene {
+export default class ProfileScene extends BaseScene {
 
     constructor() {
         super({ key: 'ProfileScene' });
@@ -20,14 +20,7 @@ export default class ProfileScene extends Phaser.Scene {
     }
 
     // ── Cargar imágenes de avatar ─────────────────────────────
-    preload() {
-        // Avatares de personajes ilustrados
-        for (let i = 1; i <= 4; i++) {
-            if (!this.textures.exists(`student${i}`)) this.load.image(`student${i}`, `assets/images/student${i}.png`);
-            if (!this.textures.exists(`tutor${i}`))   this.load.image(`tutor${i}`,   `assets/images/tutor${i}.png`);
-            if (!this.textures.exists(`parent${i}`))  this.load.image(`parent${i}`,  `assets/images/parent${i}.png`);
-        }
-    }
+    preload() { this.preloadAvatars(); }
 
     create() {
         this.W = this.scale.width;
@@ -49,7 +42,15 @@ export default class ProfileScene extends Phaser.Scene {
             this.scrollCont.y = -this.scrollY;
         });
         // Scroll táctil (sólo debajo de la barra de nav)
-        this.input.on('pointerdown', p => { if (p.y > 130) { this.isDragging = true; this.lastPointerY = p.y; } });
+        this.input.on('pointerdown', p => {
+            if (p.y > 130) {
+                const hits = this.input.hitTestPointer(p);
+                if (!hits || hits.length === 0) {
+                    this.isDragging = true;
+                    this.lastPointerY = p.y;
+                }
+            }
+        });
         this.input.on('pointermove', p => {
             if (!this.isDragging) return;
             const d = this.lastPointerY - p.y;
@@ -74,8 +75,13 @@ export default class ProfileScene extends Phaser.Scene {
     // ════════════════════════════════════════════════════
     _topbar() {
         const W = this.W, u = this.user;
+        const isStud = u?.role === 'student';
         const bg = this.add.graphics();
-        bg.fillGradientStyle(0x7c3aed, 0x7c3aed, 0xec4899, 0xec4899, 1);
+        if (isStud) {
+            bg.fillGradientStyle(0x16a34a, 0x16a34a, 0x22c55e, 0x22c55e, 1);
+        } else {
+            bg.fillGradientStyle(0x7c3aed, 0x7c3aed, 0xec4899, 0xec4899, 1);
+        }
         bg.fillRect(0, 0, W, 68);
 
         // Logo
@@ -90,7 +96,7 @@ export default class ProfileScene extends Phaser.Scene {
 
         // Nivel
         const nivel = u.level || 1;
-        const nBg = this.add.graphics(); nBg.fillStyle(0x6366f1, 1); nBg.fillRoundedRect(W-424, 16, 90, 36, 18);
+        const nBg = this.add.graphics(); nBg.fillStyle(isStud ? 0x166534 : 0x6366f1, 1); nBg.fillRoundedRect(W-424, 16, 90, 36, 18);
         this.add.text(W-408, 22, 'Nivel', { fontSize: '10px', fill: '#c7d2fe', fontFamily: F });
         this.add.text(W-408, 34, `${nivel}`, { fontSize: '18px', fill: '#fff', fontFamily: F, fontStyle: 'bold' });
 
@@ -145,9 +151,10 @@ export default class ProfileScene extends Phaser.Scene {
             const tx = i * tabW + tabW / 2;
             const isActive = tab.id === this.tabActual;
 
+            const _tabActC = (this.user?.role === 'student') ? '#16a34a' : '#7c3aed';
             const txt = this.add.text(tx, 97, tab.label, {
                 fontSize: '15px', fontFamily: F, fontStyle: 'bold',
-                fill: isActive ? '#7c3aed' : '#6b7280'
+                fill: isActive ? _tabActC : '#6b7280'
             }).setOrigin(0.5).setDepth(51);
 
             this._tabLabels[tab.id] = { txt, x: i * tabW, w: tabW };
@@ -170,12 +177,14 @@ export default class ProfileScene extends Phaser.Scene {
     _dibujarIndicador(tabId) {
         const info = this._tabLabels[tabId];
         if (!info) return;
+        const _iColor    = (this.user?.role === 'student') ? 0x16a34a : 0x7c3aed;
+        const _iColorHex = (this.user?.role === 'student') ? '#16a34a' : '#7c3aed';
         this._indicator.clear();
-        this._indicator.fillStyle(0x7c3aed, 1);
+        this._indicator.fillStyle(_iColor, 1);
         this._indicator.fillRoundedRect(info.x + 20, 122, info.w - 40, 4, 2);
 
         Object.entries(this._tabLabels).forEach(([id, { txt }]) => {
-            txt.setStyle({ fill: id === tabId ? '#7c3aed' : '#6b7280' });
+            txt.setStyle({ fill: id === tabId ? _iColorHex : '#6b7280' });
         });
     }
 
@@ -225,12 +234,14 @@ export default class ProfileScene extends Phaser.Scene {
 
     _btnVolver(x, y) {
         const bg = this.add.graphics();
-        bg.fillStyle(0xffffff,1); bg.lineStyle(1.5,0xd8b4fe,1); bg.fillRoundedRect(x,y,165,38,19);
-        const t = this.add.text(x+82, y+19, '← Volver al menú', { fontSize:'13px', fontFamily:F, fontStyle:'bold', fill:'#7c3aed' }).setOrigin(0.5);
+        const _vBC = (this.user?.role === 'student') ? 0xbbf7d0 : 0xd8b4fe;
+        const _vTC = (this.user?.role === 'student') ? '#16a34a' : '#7c3aed';
+        bg.fillStyle(0xffffff,1); bg.lineStyle(1.5,_vBC,1); bg.fillRoundedRect(x,y,165,38,19);
+        const t = this.add.text(x+82, y+19, '← Volver al menú', { fontSize:'13px', fontFamily:F, fontStyle:'bold', fill:_vTC }).setOrigin(0.5);
         const hit = this.add.rectangle(x+82, y+19, 165, 38, 0, 0).setInteractive({ useHandCursor: true });
         this.scrollCont.add([bg, t, hit]);
         hit.on('pointerover',  () => { bg.clear(); bg.fillStyle(0xf5f3ff,1); bg.lineStyle(2,0x7c3aed,1); bg.fillRoundedRect(x,y,165,38,19); this.tweens.add({targets:t,scaleX:1.04,scaleY:1.04,duration:110}); });
-        hit.on('pointerout',   () => { bg.clear(); bg.fillStyle(0xffffff,1); bg.lineStyle(1.5,0xd8b4fe,1); bg.fillRoundedRect(x,y,165,38,19); this.tweens.add({targets:t,scaleX:1,scaleY:1,duration:110}); });
+        hit.on('pointerout',   () => { bg.clear(); bg.fillStyle(0xffffff,1); bg.lineStyle(1.5,_vBC,1); bg.fillRoundedRect(x,y,165,38,19); this.tweens.add({targets:t,scaleX:1,scaleY:1,duration:110}); });
         hit.on('pointerdown',  () => { this.tweens.add({targets:t,scaleX:0.92,scaleY:0.92,duration:70,yoyo:true,onComplete:()=>this.scene.start('MenuScene')}); });
     }
 
@@ -280,14 +291,16 @@ export default class ProfileScene extends Phaser.Scene {
 
     _btnEditar(x, y) {
         const bg = this.add.graphics();
-        bg.fillStyle(0x7c3aed, 1); bg.fillRoundedRect(x, y, 154, 38, 19);
+        const _eC1 = (this.user?.role === 'student') ? 0x16a34a : 0x7c3aed;
+        const _eC2 = (this.user?.role === 'student') ? 0x15803d : 0x6d28d9;
+        bg.fillStyle(_eC1, 1); bg.fillRoundedRect(x, y, 154, 38, 19);
         const sh = this.add.graphics();
-        sh.fillStyle(0x7c3aed, 0.18); sh.fillRoundedRect(x+2, y+4, 154, 38, 19);
+        sh.fillStyle(_eC1, 0.18); sh.fillRoundedRect(x+2, y+4, 154, 38, 19);
         const t = this.add.text(x+77, y+19, '✏️  Editar perfil', { fontSize:'13px', fontFamily:F, fontStyle:'bold', fill:'#fff' }).setOrigin(0.5);
         const hit = this.add.rectangle(x+77, y+19, 154, 38, 0, 0).setInteractive({ useHandCursor: true });
         this.scrollCont.add([sh, bg, t, hit]);
-        hit.on('pointerover',  () => { bg.clear(); bg.fillStyle(0x6d28d9,1); bg.fillRoundedRect(x,y,154,38,19); this.tweens.add({targets:t,scaleX:1.05,scaleY:1.05,duration:110}); });
-        hit.on('pointerout',   () => { bg.clear(); bg.fillStyle(0x7c3aed,1); bg.fillRoundedRect(x,y,154,38,19); this.tweens.add({targets:t,scaleX:1,scaleY:1,duration:110}); });
+        hit.on('pointerover',  () => { bg.clear(); bg.fillStyle(_eC2,1); bg.fillRoundedRect(x,y,154,38,19); this.tweens.add({targets:t,scaleX:1.05,scaleY:1.05,duration:110}); });
+        hit.on('pointerout',   () => { bg.clear(); bg.fillStyle(_eC1,1); bg.fillRoundedRect(x,y,154,38,19); this.tweens.add({targets:t,scaleX:1,scaleY:1,duration:110}); });
         hit.on('pointerdown',  () => { this.tweens.add({targets:t,scaleX:0.92,scaleY:0.92,duration:70,yoyo:true,onComplete:()=>this._modalEditar()}); });
     }
 

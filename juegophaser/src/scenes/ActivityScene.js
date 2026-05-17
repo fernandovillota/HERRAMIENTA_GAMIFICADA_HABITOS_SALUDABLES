@@ -1,7 +1,7 @@
 // src/scenes/ActivityScene.js — Módulo Actividad Física
 import BaseScene from './BaseScene.js';
 import { PHYSICAL_CHALLENGES, ACTIVITY_QUESTIONS, ACHIEVEMENTS, shuffleArray, getRandomItems } from '../utils/gameData.js';
-import { getCurrentUser, addPoints, updateModuleProgress, updateStreak, getUserData, checkAndUnlockAchievements } from '../utils/userData.js';
+import { getCurrentUser, clearCurrentUser, addPoints, updateModuleProgress, updateStreak, getUserData, checkAndUnlockAchievements } from '../utils/userData.js';
 
 const F = '"Segoe UI",Arial,sans-serif';
 
@@ -27,7 +27,7 @@ export default class ActivityScene extends BaseScene {
         this.quizAnswered = false;
 
         this.crearFondo(0xfff7ed, 0xffedd5);
-        this.crearTopbar(this.user, () => this.scene.start('ProfileScene'), () => this.scene.start('LoginScene'));
+        this.crearTopbar(this.user, () => this.scene.start('ProfileScene'), () => { clearCurrentUser(); this.scene.start('LoginScene'); });
         this._crearUI();
     }
 
