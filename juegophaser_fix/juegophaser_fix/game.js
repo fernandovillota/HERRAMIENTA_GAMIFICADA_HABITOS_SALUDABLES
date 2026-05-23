@@ -1,4 +1,4 @@
-// Font global
+/// Font global
 const F = '"Segoe UI",Arial,sans-serif';
 
 // ═══════════════════════════════════════════════════
