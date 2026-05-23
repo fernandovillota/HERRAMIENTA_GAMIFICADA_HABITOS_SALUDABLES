@@ -1,7 +1,7 @@
 /// Font global
 const F = '"Segoe UI",Arial,sans-serif';
 
-// ═══════════════════════════════════════════════════
+/// ═══════════════════════════════════════════════════
 // HABITOS SALUDABLES — Bundle único sin módulos ES6
 // Compatible con file:// y http://
 // ═══════════════════════════════════════════════════
