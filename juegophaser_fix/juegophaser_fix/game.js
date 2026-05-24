@@ -779,10 +779,10 @@ class LoginScene extends Phaser.Scene {
         let y=cy+272;
         this.etiqueta('👤  Usuario',fX,y);y+=28;
         const iUser=this.campo(fX,y,fW,46,'Elige un nombre de usuario');y+=50;
-        this.hint('Mínimo 3 caracteres',fX,y);y+=22;
+        //this.hint('Mínimo 3 caracteres',fX,y);y+=22;
         this.etiqueta('🔒  Contraseña',fX,y);y+=28;
         const iPass=this.campo(fX,y,fW,46,'Crea una contraseña',true);y+=50;
-        this.hint('Mínimo 4 caracteres',fX,y);y+=22;
+        this.hint('Mínimo 8 caracteres',fX,y);y+=22;
         this.etiqueta('👤  Nombre completo',fX,y);y+=28;
         const iNom=this.campo(fX,y,fW,46,'Tu nombre completo');y+=62;
         const rLabel=this.add.text(fX+4,y,'Rol:',{fontSize:'14px',fontFamily:'"Segoe UI",Arial',fontStyle:'bold',fill:'#4b2d8a'});
@@ -1080,7 +1080,11 @@ class ProfileScene extends BaseScene {
     // ════════════════════════════════════════════════════
     _fondo() {
         const g = this.add.graphics();
-        g.fillGradientStyle(0xf5eeff, 0xf5eeff, 0xffe8f8, 0xf0e8ff, 1);
+        if (this.user?.role === 'student') {
+            g.fillGradientStyle(0xf0fdf4, 0xf0fdf4, 0xecfdf5, 0xecfdf5, 1);
+        } else {
+            g.fillGradientStyle(0xf5eeff, 0xf5eeff, 0xffe8f8, 0xf0e8ff, 1);
+        }
         g.fillRect(0, 0, this.W, this.H);
     }
 
@@ -1293,7 +1297,7 @@ class ProfileScene extends BaseScene {
         // Logro Destacado
         const featId  = u.featuredAchievement;
         const featAch = featId ? ACHIEVEMENTS.find(a => a.id === featId) : null;
-        const featTxt = featAch ? `${featAch.icon}  ${featAch.name} · +${featAch.points} pts` : '⭐  Desbloquea logros jugando para destacar uno aquí';
+        const featTxt = featAch ? `${featAch.icon}  ${featAch.name} · +${featAch.points} pts` : '⭐mejora tu perfil⭐';
         const lBg = this.add.graphics();
         lBg.fillStyle(0xfffbeb, 1); lBg.lineStyle(1.5, 0xfbbf24, 1); lBg.fillRoundedRect(x+20, y+152, w-40, 50, 12);
         const fT = this.add.text(x+w/2, y+177, featTxt, { fontSize:'13px', fontFamily:F, fill:'#92400e', align:'center' }).setOrigin(0.5);
@@ -2926,7 +2930,7 @@ class TutorScene extends BaseScene {
         const lN=this.add.text(mx+32,my+84,'Nombre del grupo *',{fontSize:'14px',fontFamily:F,fontStyle:'bold',fill:'#374151'});
         const inNBg=this.add.graphics(); inNBg.lineStyle(1.5,0xd8b4fe,1); inNBg.fillStyle(0xfaf5ff,1); inNBg.fillRoundedRect(mx+32,my+108,mW-64,44,12);
         const inN=this.add.dom(mx+32+(mW-64)/2,my+130,'input',{width:(mW-100)+'px',height:'28px',border:'none',outline:'none',background:'transparent',fontSize:'15px',fontFamily:F.replace(/"/g,"'"),color:'#1e1b4b',padding:'0 10px'});
-        inN.node.placeholder=this.user?.role==='parent'?'Ej: Familia García':'Ej: Grado 3A — Semestre 2025';
+        inN.node.placeholder=this.user?.role==='parent'?'Ej: Familia García':'Ej: Grado 5 A';
         panel.add([lN,inNBg,inN]);
         inN.node.addEventListener('focus',()=>{inNBg.clear();inNBg.lineStyle(2,_mC,1);inNBg.fillStyle(0xf0f9ff,1);inNBg.fillRoundedRect(mx+32,my+108,mW-64,44,12);});
         inN.node.addEventListener('blur', ()=>{inNBg.clear();inNBg.lineStyle(1.5,0xd8b4fe,1);inNBg.fillStyle(0xfaf5ff,1);inNBg.fillRoundedRect(mx+32,my+108,mW-64,44,12);});
@@ -3037,10 +3041,6 @@ class TutorScene extends BaseScene {
         const ROLES = [
             { label:'👦 Hijo',       val:'Hijo' },
             { label:'👧 Hija',       val:'Hija' },
-            { label:'👨 Hermano',    val:'Hermano' },
-            { label:'👩 Hermana',    val:'Hermana' },
-            { label:'🧒 Sobrino',    val:'Sobrino' },
-            { label:'👧 Sobrina',    val:'Sobrina' },
             { label:'👤 Otro',       val:'Otro' },
         ];
         const ov=this.add.graphics(); ov.fillStyle(0x000000,0.55); ov.fillRect(0,0,W,H); ov.setDepth(200).setInteractive();
